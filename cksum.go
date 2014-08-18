@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt";
-//	"bufio";
+	"bufio";
 	"flag";
-	"os"
+	"os";
+	"io"
 )
 
 var crctab = [...]uint32{0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc,
@@ -60,18 +61,57 @@ var crctab = [...]uint32{0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x13047
           0xa6322bdf, 0xa2f33668, 0xbcb4666d, 0xb8757bda, 0xb5365d03,
           0xb1f740b4}
 
-func _cksum(file *os.File) {
+func Cksum(file *os.File) (uint32, uint) {
+	in := bufio.NewReader(file)
+	sz := uint(0)
+	s := uint32(0)
+
+	updatecksum := func(b byte) {
+		tabidx := (s >> 24) ^ uint32(b)
+		s = ((s << 8)&0xFFFFFFFF) ^ crctab[tabidx%256]
+	}
+
+	for done := false; !done; {
+		switch b, err := in.ReadByte(); err {
+			case io.EOF:
+				done = true
+			case nil: // read another byte
+				updatecksum(b)
+				sz++
+			default:
+				return s, sz
+		}
+	}
+
+	for m := sz;; {
+		updatecksum(byte(m) & 0xFF)
+		m = m >> 8
+		if m == 0 { break }
+	}
+
+	return ^s, sz
 }
 
 func main() {
 	flag.Parse()
 
+	// If reading from stdin
 	if flag.NArg() == 0 {
-		_cksum(os.Stdin)
+		s, sz := Cksum(os.Stdin)
+		fmt.Printf("%d %d\n", s, sz)
 		return
 	}
 
+	// If given a list of 1 or more files on the command line
 	for _, filename := range flag.Args() {
-		fmt.Println(filename)
+		f, err := os.Open(filename)
+		defer f.Close()
+
+		if f == nil {
+			fmt.Println("cksum: ", err)
+			continue
+		}
+		s, sz := Cksum(f)
+		fmt.Printf("%d %d %s\n", s, sz, filename)
 	}
 }
