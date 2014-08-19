@@ -71,16 +71,16 @@ func Cksum(file *os.File) (uint32, uint) {
 		s = ((s << 8)&0xFFFFFFFF) ^ crctab[tabidx%256]
 	}
 
-	for done := false; !done; {
-		switch b, err := in.ReadByte(); err {
-			case io.EOF:
-				done = true
-			case nil: // read another byte
-				updatecksum(b)
-				sz++
-			default:
-				return s, sz
+	buf := make([]byte, 40960)
+	for {
+		n, err := in.Read(buf)
+		if err == io.EOF {
+			break
 		}
+		for i := 0; i < n; i++ {
+			updatecksum(buf[i])
+		}
+		sz += uint(n)
 	}
 
 	for m := sz;; {
