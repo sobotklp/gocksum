@@ -4,4 +4,8 @@
 
 A simple implementation of the posix cksum algorithm for Go.
 
-[![Build Status](https://travis-ci.org/Kixeye/kixmpp.svg?branch=master)](https://travis-ci.org/sobotklp/gocksum)
+|Build| 
+
+.. |Build| image:: https://github.com/sobotklp/gocksum/workflows/CI/badge.svg?branch=master
+     :target: https://github.com/sobotklp/gocksum/actions?workflow=CI
+     :alt: CI Status
